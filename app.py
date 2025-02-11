@@ -1,3 +1,4 @@
+# Work in progress. Comparative analysis @ Line 248 is currently hard coded. I will add proper functionality soon.
 
 # Import necessary libraries and modules
 from flask import Flask, render_template, request, jsonify
