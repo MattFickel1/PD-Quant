@@ -1,0 +1,996 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEC Filings Dashboard</title>
+    <style>
+        /* Base styles for the entire document */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+
+        /* Main container styling */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Header section styling */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f2f5;
+        }
+
+        h1 {
+            color: #1a237e;
+            margin: 0;
+            font-size: 24px;
+        }
+
+        /* Search form styling */
+        .search-form {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            position: relative;  /* For positioning suggestions */
+        }
+
+        .search-form input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+            width: 300px;
+        }
+
+        .search-form button {
+            padding: 8px 16px;
+            background-color: #1a237e;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .search-form button:hover {
+            background-color: #283593;
+        }
+
+        /* Autocomplete suggestions styling */
+        .suggestions-container {
+            position: absolute;
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .suggestion {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        .suggestion:last-child {
+            border-bottom: none;
+        }
+
+        .suggestion:hover {
+            background-color: #f5f5f5;
+        }
+
+        .suggestion .ticker {
+            color: #666;
+            margin-left: 10px;
+            font-size: 0.9em;
+        }
+
+        /* Table styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background-color: white;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            color: #1a237e;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        /* Badge styling for XBRL indicator */
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .badge-xbrl {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+
+        /* Enhanced autocomplete styling */
+        .search-container {
+            position: relative;
+            width: 400px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #1a237e;
+        }
+
+        .suggestions-container {
+            position: absolute;
+            width: 100%;
+            max-height: 400px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-top: 4px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .suggestion {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s ease;
+        }
+
+        .suggestion.selected {
+            background-color: #f0f2f5;
+        }
+
+        .suggestion:hover {
+            background-color: #f8f9fa;
+        }
+
+        .suggestion-title {
+            font-weight: 500;
+            color: #1a237e;
+        }
+
+        .suggestion-ticker {
+            display: inline-block;
+            background-color: #e8eaf6;
+            color: #1a237e;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+            font-size: 0.9em;
+        }
+
+        .highlight {
+            background-color: #fff9c4;
+            padding: 0 2px;
+        }
+
+        .no-results {
+            padding: 16px;
+            text-align: center;
+            color: #666;
+        }
+
+        .loading-indicator {
+            text-align: center;
+            padding: 16px;
+            color: #666;
+        }
+        .filing-link {
+            color: #1a237e;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .filing-link:hover {
+            text-decoration: underline;
+        }
+
+        .link-icon {
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+
+        .link-icon:hover {
+            opacity: 1;
+        }
+        /* Loading animation styles */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: none;  /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;  /* Ensure it's above all other content */
+        }
+
+        .loading-overlay.active {
+            display: flex;  /* This makes it visible when the active class is added */
+        }
+
+        .loading-spinner {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #1a237e;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #1a237e;
+            font-size: 16px;
+            font-weight: 500;
+            margin-top: 15px;
+        }
+        /* Filter section styling */
+        .filter-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .filter-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
+            font-weight: 500;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;  /* Allows buttons to wrap on smaller screens */
+        }
+
+        .filter-button {
+            padding: 8px 16px;
+            border: 2px solid #1a237e;
+            border-radius: 20px;
+            background-color: white;
+            color: #1a237e;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .filter-button:hover {
+            background-color: #e8eaf6;
+        }
+
+        .filter-button.active {
+            background-color: #1a237e;
+            color: white;
+        }
+
+        .filing-details-content {
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin: 10px;
+        }
+
+        .expand-button {
+            background: none;
+            border: 1px solid #1a237e;
+            border-radius: 4px;
+            width: 24px;
+            height: 24px;
+            margin-right: 8px;
+            cursor: pointer;
+            color: #1a237e;
+            transition: all 0.2s ease;
+        }
+
+        .expand-button:hover {
+            background-color: #1a237e;
+            color: white;
+        }
+
+        /* Expandable Row Styling */
+        .filing-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 24px;
+            background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+            border-radius: 8px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Section Styling - Each major content area */
+        .filing-overview, .key-information, .financial-summary {
+            background-color: white;
+            padding: 20px;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease;
+        }
+
+        /* These sections will slightly lift when hovered over */
+        .filing-overview:hover, .key-information:hover, .financial-summary:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Headers within sections */
+        .filing-details-grid h4 {
+            color: #1a237e;
+            font-size: 16px;
+            margin: 0 0 16px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e8eaf6;
+        }
+
+        /* Filing purpose styling */
+        .filing-purpose {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        /* Key points list styling */
+        .key-points-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .key-points-list li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .key-points-list li:before {
+            content: "•";
+            color: #1a237e;
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+
+        /* Financial metrics styling */
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+
+        /* Loading state styling */
+        .loading-details {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1a237e;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        /* Error message styling */
+        .error-message {
+            text-align: center;
+            padding: 20px;
+            color: #d32f2f;
+            background-color: #ffebee;
+            border-radius: 6px;
+        }
+
+        /* Animation for expand/collapse */
+        .filing-details {
+            transition: all 0.3s ease-in-out;
+        }
+
+        /* Expansion button styling */
+        .expand-button {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #1a237e;
+            border-radius: 4px;
+            background: none;
+            color: #1a237e;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+        }
+
+        .expand-button:hover {
+            background-color: #1a237e;
+            color: white;
+        }
+
+        .search-status {
+            margin: 20px 0;
+            padding: 12px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            color: #1a237e;
+            font-weight: 500;
+            display: none; /* Hidden by default */
+        }
+
+        .search-status.active {
+            display: block; /* Shows when we add the active class*/
+        }
+
+        /* Add styles for detailed financial viewing */
+        .filing-details-container {
+            padding: 20px;
+            background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+            border-radius: 8px;
+            margin: 10px;
+        }
+
+        .metric-title {
+            color: #1a237e;
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .comparison {
+            font-size: 0.9em;
+        }
+
+        .comparison .label {
+            color: #666;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .comparison .value {
+            font-weight: 500;
+        }
+
+        .value.positive {
+            color: #2e7d32;
+        }
+
+        .value.negative {
+            color: #c62828;
+        }
+
+        /* Industry Benchmark Styles */
+        .benchmark-category {
+            margin-bottom: 25px;
+        }
+
+        .category-title {
+            color: #1a237e;
+            font-size: 16px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .benchmark-metric {
+            background: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .metric-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .trend-indicator {
+            font-size: 20px;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .trend-indicator.improving { color: #2e7d32; }
+        .trend-indicator.stable { color: #1565c0; }
+        .trend-indicator.declining { color: #c62828; }
+
+        /* Adjusts comparison bars to fit better into detailed view */
+        .comparison-bar {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .range-bar {
+            height: 6px;
+            background: #f5f5f5;
+            border-radius: 3px;
+            position: relative;
+            margin: 12px 0;
+        }
+
+        .industry-range {
+            position: absolute;
+            height: 100%;
+            background: #e3f2fd;
+        }
+
+        .company-marker {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #1a237e;
+            border-radius: 50%;
+            top: -3px;
+            transform: translateX(-50%);
+        }
+
+        .industry-avg-marker {
+            position: absolute;
+            width: 2px;
+            height: 12px;
+            background: #90a4ae;
+            top: -3px;
+            transform: translateX(-50%);
+        }
+
+        .metric-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        /* New styling for detailed view! (Copy pasted from Claude) */
+
+        .metric-content {
+            padding: 10px 0;
+        }
+
+        /* Add margin between sections */
+        .financial-overview,
+        .industry-benchmarks,
+        .growth-analysis {
+            margin-bottom: 20px;
+        }
+
+        /* Ensure padding inside cells */
+        .filing-details-row > td {
+            padding: 20px;
+        }
+        /* New styling for detailed view! (Copy pasted from Claude) */
+
+
+        /* END OF CSS Style Section */
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .metric-row.comparative {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .metric-label {
+            color: #666;
+        }
+
+        .metric-value {
+            font-weight: 500;
+            color: #1a237e;
+        }
+
+        /* Add to your existing styles */
+        .metric-group {
+            margin-bottom: 15px;
+            padding: 12px;
+            /* background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); ---> Commented out during edits <--- */
+        }
+
+        /* Responsive layout for smaller screens (mobile) */
+        @media (max-width: 1200px) {
+            .financial-metrics-grid {
+                grid-template-columns: repeat(2, 1fr); /* Switch to 2 columns */
+            }
+        }
+
+        @media (max-width: 768px) {
+            .financial-metrics-grid {
+                grid-template-columns: 1fr; /* Single column on mobile */
+            }
+        }
+        /* Responsive layout for smaller screens (mobile) */
+
+        .metric-title {
+            color: #1a237e;
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .comparison {
+            font-size: 0.9em;
+        }
+
+        .comparison .label {
+            color: #666;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .comparison .value {
+            font-weight: 500;
+        }
+
+        .value.positive {
+            color: #2e7d32;
+        }
+
+        .value.negative {
+            color: #c62828;
+        }
+
+        /* Industry Benchmark Styles */
+        .benchmark-category {
+            margin-bottom: 25px;
+        }
+
+        .category-title {
+            color: #1a237e;
+            font-size: 16px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .benchmark-metric {
+            background: white;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .metric-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .trend-indicator {
+            font-size: 20px;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .trend-indicator.improving { color: #2e7d32; }
+        .trend-indicator.stable { color: #1565c0; }
+        .trend-indicator.declining { color: #c62828; }
+
+        /* Adjusts comparison bars to fit better into detailed view */
+        .comparison-bar {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .range-bar {
+            height: 6px;
+            background: #f5f5f5;
+            border-radius: 3px;
+            position: relative;
+            margin: 12px 0;
+        }
+
+        .industry-range {
+            position: absolute;
+            height: 100%;
+            background: #e3f2fd;
+        }
+
+        .company-marker {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #1a237e;
+            border-radius: 50%;
+            top: -3px;
+            transform: translateX(-50%);
+        }
+
+        .industry-avg-marker {
+            position: absolute;
+            width: 2px;
+            height: 12px;
+            background: #90a4ae;
+            top: -3px;
+            transform: translateX(-50%);
+        }
+
+        .metric-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        /* New styling for detailed view! (Copy pasted from Claude) */
+
+        /* Financial Metrics Layout and Styling */
+        .financial-metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            padding: 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .metric-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+
+        .metric-section h4 {
+            color: #1a237e;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e8eaf6;
+        }
+
+        .metric-content {
+            padding: 10px 0;
+        }
+
+        /* Add margin between sections */
+        .financial-overview,
+        .industry-benchmarks,
+        .growth-analysis {
+            margin-bottom: 20px;
+        }
+
+        /* Ensure padding inside cells */
+        .filing-details-row > td {
+            padding: 20px;
+        }
+        /* New styling for detailed view! (Copy pasted from Claude) */
+
+        .financial-metrics-grid {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 25px !important;
+            padding: 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* END OF CSS Style Section */
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <div class="loading-text">Fetching SEC Filings...</div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>SEC Filings Dashboard</h1>
+        </div>
+        
+        <!-- Search form with autocomplete -->
+        <div class="search-form">
+            <form method="GET" id="search-form">
+                <input type="text" 
+                       id="company-search" 
+                       placeholder="Search for a company..." 
+                       autocomplete="off">
+                <input type="hidden" name="cik" id="cik-input">
+                <button type="submit">Search</button>
+                <div id="suggestions" class="suggestions-container"></div>
+            </form>
+        </div>
+        
+        <!-- Searching for xyz feature-->
+        <!-- Right after your search form but before the filters -->
+        <div id="search-status" class="search-status">
+            {% if company_name %}
+                Showing results for "{{ company_name }}"
+            {% endif %}
+        </div>
+        
+        <!-- Filing type filters -->
+<div class="filter-section">
+    <div class="filter-title">Filter by Filing Type:</div>
+    <div class="filter-buttons">
+        <button type="button" class="filter-button active" data-type="all">All Filings</button>
+        <button type="button" class="filter-button" data-type="10-K">10-K (Annual Reports)</button>
+        <button type="button" class="filter-button" data-type="10-Q">10-Q (Quarterly Reports)</button>
+        <button type="button" class="filter-button" data-type="8-K">8-K (Current Reports)</button>
+        <button type="button" class="filter-button" data-type="4">Form 4 (Insider Trading)</button>
+    </div>
+</div>
+
+        <!-- Filings data table -->
+        <table>
+            <thead>
+                <tr>
+                    <th>Form Type</th>
+                    <th>Filing Date</th>
+                    <th>Report Date</th>
+                    <th>Document</th>
+                    <th>Description</th>
+                    <th>Size</th>
+                    <th>XBRL</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for filing in filings %}
+                <!-- Main filing row - We add data-accession to track which filing this is -->
+                <tr class="filing-row" data-accession="{{filing['Accession'] }}">
+                    <td>
+                        <a href="{{ filing['SEC URL'] }}" target="_blank" class="filing-link">
+                            {{ filing['Form Type'] }}
+                            <span class="link-icon">↗</span>
+                        </a>
+                    </td>
+                    <td>{{ filing['Filing Date'] }}</td>
+                    <td>{{ filing['Report Date'] }}</td>
+                    <td>{{ filing['Document'] }}</td>
+                    <td>{{ filing['Description'] }}</td>
+                    <td>{{ filing['Size'] }}</td>
+                    <td>
+                        <span class="badge badge-xbrl">
+                            {{ 'Yes' if filing['Is XBRL'] else 'No' }}
+                        </span>
+                    </td>
+                </tr>
+                <!--New expandable details row - This will appear below each filing row-->
+                <tr class="filing-details-row" style="display: none;">
+                    <td colspan="7">
+                        <div class="filing-details-container">
+                            <div class="financial-metrics-grid">
+                                <!-- Financial Overview Section -->
+                                <div class="metric-section">
+                                    <h4>Financial Overview</h4>
+                                    <div class="metric-content" id="financial-overview-{{filing['Accession']}}">
+                                        Loading financial data...
+                                    </div>
+                                </div>
+                                <!-- Industry Benchmarks Section -->
+                                <div class="metric-section">
+                                    <h4>Industry Benchmarks</h4>
+                                    <div class="metric-content" id="kpi-metrics-{{filing['Accession']}}">
+                                        Loading benchmarks...
+                                    </div>
+                                </div>
+                                <!-- Growth Analysis Section -->
+                                <div class="metric-section">
+                                    <h4>Growth Analysis</h4>
+                                    <div class="metric-content" id="growth-metrics-{{filing['Accession']}}">
+                                        Loading growth metrics...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Load JavaScript files -->
+    <script src="{{ url_for('static', filename='scripts.js') }}"></script>
+</body>
+</html>
